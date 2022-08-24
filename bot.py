@@ -6,7 +6,13 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from telegram.ext import Filters, Updater, CallbackContext
 
-import elastic_path_api
+from elastic_path_api import (fetch_cart,
+                              fetch_product,
+                              fetch_products,
+                              create_customer,
+                              get_product_image,
+                              add_product_to_cart,
+                              delete_product_from_cart)
 
 _database = None
 
@@ -24,7 +30,7 @@ def handle_menu(update: Update, context: CallbackContext):
     callback_data = update.callback_query.data
     chat_id = update.callback_query.message.chat_id
     if callback_data == 'cart':
-        cart = elastic_path_api.fetch_cart(chat_id)
+        cart = fetch_cart(chat_id)
         cart_message = form_cart_message(cart)
         reply_markup = get_cart_reply_markup(cart)
         context.bot.send_message(
@@ -38,10 +44,10 @@ def handle_menu(update: Update, context: CallbackContext):
         )
         return 'HANDLE_CART'
     product_id = update.callback_query.data
-    product_details = elastic_path_api.fetch_product(product_id)
+    product_details = fetch_product(product_id)
     product_image_id = (product_details['relationships']
                         ['main_image']['data']['id'])
-    product_image = elastic_path_api.get_product_image(product_image_id)
+    product_image = get_product_image(product_image_id)
     product_name = product_details['name']
     product_description = product_details['description']
     product_price = (product_details['meta']['display_price']
@@ -116,7 +122,7 @@ def handle_cart(update: Update, context: CallbackContext):
         return 'WAITING_CONTACT_INFO'
     else:
         product_to_delete_id = callback_data
-        cart = elastic_path_api.delete_product_from_cart(
+        cart = delete_product_from_cart(
             product_to_delete_id,
             chat_id
         )
@@ -153,7 +159,7 @@ def handle_description(update: Update, context: CallbackContext):
         )
         return 'HANDLE_MENU'
     elif callback_data == 'cart':
-        cart = elastic_path_api.fetch_cart(chat_id)
+        cart = fetch_cart(chat_id)
         cart_message = form_cart_message(cart)
         reply_markup = get_cart_reply_markup(cart)
         context.bot.send_message(
@@ -168,7 +174,7 @@ def handle_description(update: Update, context: CallbackContext):
         return 'HANDLE_CART'
     else:
         product_id, quantity = callback_data.split('_')
-        elastic_path_api.add_product_to_cart(
+        add_product_to_cart(
             product_id,
             int(quantity),
             chat_id
@@ -188,7 +194,7 @@ def handle_contact_info(update: Update, context: CallbackContext):
         return 'WAITING_CONTACT_INFO'
     name = context.user_data['name']
     email = update.message.text
-    customer = elastic_path_api.create_customer(name, email)
+    customer = create_customer(name, email)
     reply_markup = get_main_menu_reply_markup()
     context.bot.send_message(
         chat_id=chat_id,
@@ -230,7 +236,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
 
 def get_main_menu_reply_markup():
     keyboard = []
-    products = elastic_path_api.fetch_products()
+    products = fetch_products()
     for product in products:
         product_button = [InlineKeyboardButton(
             product['name'],

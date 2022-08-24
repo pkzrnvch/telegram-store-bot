@@ -26,7 +26,7 @@ def get_elastic_path_access_token():
 
 
 def fetch_products():
-    access_token = get_elastic_path_access_token()['access_token']
+    access_token = get_elastic_path_access_token()
     url = 'https://api.moltin.com/v2/products'
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.get(url, headers=headers)
@@ -36,7 +36,7 @@ def fetch_products():
 
 
 def fetch_product(product_id):
-    access_token = get_elastic_path_access_token()['access_token']
+    access_token = get_elastic_path_access_token()
     url = f'https://api.moltin.com/v2/products/{product_id}'
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.get(url, headers=headers)
@@ -46,7 +46,7 @@ def fetch_product(product_id):
 
 
 def get_product_image(file_id):
-    access_token = get_elastic_path_access_token()['access_token']
+    access_token = get_elastic_path_access_token()
     url = f'https://api.moltin.com/v2/files/{file_id}'
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.get(url, headers=headers)
@@ -64,7 +64,7 @@ def get_product_image(file_id):
 
 
 def add_product_to_cart(product_id, quantity, cart_id):
-    access_token = get_elastic_path_access_token()['access_token']
+    access_token = get_elastic_path_access_token()
     url = f'https://api.moltin.com/v2/carts/{cart_id}/items'
     headers = {'Authorization': f'Bearer {access_token}'}
     payload = {
@@ -79,7 +79,7 @@ def add_product_to_cart(product_id, quantity, cart_id):
 
 
 def delete_product_from_cart(product_id, cart_id):
-    access_token = get_elastic_path_access_token()['access_token']
+    access_token = get_elastic_path_access_token()
     url = f'https://api.moltin.com/v2/carts/{cart_id}/items/{product_id}'
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.delete(url, headers=headers)
@@ -89,7 +89,7 @@ def delete_product_from_cart(product_id, cart_id):
 
 
 def fetch_cart(cart_id):
-    access_token = get_elastic_path_access_token()['access_token']
+    access_token = get_elastic_path_access_token()
     url = f'https://api.moltin.com/v2/carts/{cart_id}/items'
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.get(url, headers=headers)
@@ -99,7 +99,7 @@ def fetch_cart(cart_id):
 
 
 def create_customer(customer_name, customer_email):
-    access_token = get_elastic_path_access_token()['access_token']
+    access_token = get_elastic_path_access_token()
     url = 'https://api.moltin.com/v2/customers'
     headers = {'Authorization': f'Bearer {access_token}'}
     payload = {

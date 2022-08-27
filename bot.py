@@ -2,7 +2,7 @@ import os
 
 import redis
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from telegram.ext import Filters, Updater, CallbackContext
 
@@ -13,12 +13,18 @@ from elastic_path_api import (fetch_cart,
                               get_product_image,
                               add_product_to_cart,
                               delete_product_from_cart)
+from reply_markups_and_message_texts import (get_main_menu_reply_markup,
+                                             get_cart_reply_markup,
+                                             get_product_details_reply_markup,
+                                             form_cart_message,
+                                             form_product_details_message)
 
 _database = None
 
 
 def start(update: Update, context: CallbackContext):
-    reply_markup = get_main_menu_reply_markup()
+    products = fetch_products()
+    reply_markup = get_main_menu_reply_markup(products)
     message_text = 'Hello! Please, choose a product you are interested in'
     update.message.reply_text(text=message_text, reply_markup=reply_markup)
     return 'HANDLE_MENU'
@@ -48,41 +54,13 @@ def handle_menu(update: Update, context: CallbackContext):
     product_image_id = (product_details['relationships']
                         ['main_image']['data']['id'])
     product_image = get_product_image(product_image_id)
-    product_name = product_details['name']
-    product_description = product_details['description']
-    product_price = (product_details['meta']['display_price']
-                     ['with_tax']['formatted'])
-    product_price_text = f'{product_price} per kg'
-    product_amount_in_stock = \
-        f"{product_details['meta']['stock']['level']} kg on stock"
-    message_text = '\n\n'.join([
-        product_name,
-        product_price_text,
-        product_amount_in_stock,
-        product_description
-    ])
-    keyboard = []
-    selection_raw = []
-    quantity_options = [1, 5, 10]
-    for quantity in quantity_options:
-        selection_raw.append(InlineKeyboardButton(
-            f'{quantity} kg',
-            callback_data=f'{product_id}_{quantity}'
-        ))
-    keyboard.append(selection_raw)
-    cart_button = [InlineKeyboardButton('Show cart', callback_data='cart')]
-    keyboard.append(cart_button)
-    return_button = [InlineKeyboardButton(
-        'Main menu',
-        callback_data='main_menu'
-    )]
-    keyboard.append(return_button)
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    product_details_message = form_product_details_message(product_details)
+    reply_markup = get_product_details_reply_markup(product_id)
     with open(product_image, 'rb') as product_image:
         context.bot.send_photo(
             chat_id=chat_id,
             photo=product_image,
-            caption=message_text,
+            caption=product_details_message,
             reply_markup=reply_markup
         )
     context.bot.delete_message(
@@ -99,7 +77,8 @@ def handle_cart(update: Update, context: CallbackContext):
     chat_id = update.callback_query.message.chat_id
     if callback_data == 'main_menu':
         message_text = 'Hello! Please, choose a product you are interested in'
-        reply_markup = get_main_menu_reply_markup()
+        products = fetch_products()
+        reply_markup = get_main_menu_reply_markup(products)
         context.bot.send_message(
             chat_id=chat_id,
             text=message_text,
@@ -147,7 +126,8 @@ def handle_description(update: Update, context: CallbackContext):
     chat_id = update.callback_query.message.chat_id
     if callback_data == 'main_menu':
         message_text = 'Hello! Please, choose a product you are interested in'
-        reply_markup = get_main_menu_reply_markup()
+        products = fetch_products()
+        reply_markup = get_main_menu_reply_markup(products)
         context.bot.send_message(
             chat_id=chat_id,
             text=message_text,
@@ -195,7 +175,8 @@ def handle_contact_info(update: Update, context: CallbackContext):
     name = context.user_data['name']
     email = update.message.text
     customer = create_customer(name, email)
-    reply_markup = get_main_menu_reply_markup()
+    products = fetch_products()
+    reply_markup = get_main_menu_reply_markup(products)
     context.bot.send_message(
         chat_id=chat_id,
         text='Thank you! We will contact you shortly',
@@ -234,79 +215,18 @@ def handle_users_reply(update: Update, context: CallbackContext):
         print(err)
 
 
-def get_main_menu_reply_markup():
-    keyboard = []
-    products = fetch_products()
-    for product in products:
-        product_button = [InlineKeyboardButton(
-            product['name'],
-            callback_data=product['id']
-        )]
-        keyboard.append(product_button)
-    cart_button = [InlineKeyboardButton('Show cart', callback_data='cart')]
-    keyboard.append(cart_button)
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    return reply_markup
-
-
-def get_cart_reply_markup(cart):
-    keyboard = []
-    for item in cart['data']:
-        keyboard.append([InlineKeyboardButton(
-            f"Remove {item['name']} from cart",
-            callback_data=item['id']
-        )])
-    return_button = [InlineKeyboardButton(
-        'Main menu',
-        callback_data='main_menu'
-    )]
-    order_button = [InlineKeyboardButton(
-        'Make order',
-        callback_data='order'
-    )]
-    keyboard.append(return_button)
-    keyboard.append(order_button)
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    return reply_markup
-
-
 def get_database_connection():
     global _database
     if _database is None:
         database_password = os.getenv('REDIS_DB_PASSWORD')
         database_host = os.getenv('REDIS_DB_HOST')
-        database_port = os.getenv('REDIS_DB_PORT')
+        database_port = int(os.getenv('REDIS_DB_PORT'))
         _database = redis.Redis(
             host=database_host,
             port=database_port,
             password=database_password
         )
     return _database
-
-
-def form_cart_message(cart):
-    if not cart['data']:
-        cart_message = 'Your cart is empty at the moment'
-    else:
-        cart_total = (cart['meta']['display_price']
-                      ['with_tax']['formatted'])
-        cart_items = cart['data']
-        cart_items_texts = []
-        for cart_item in cart_items:
-            cart_item_price = (cart_item['meta']['display_price']
-                               ['with_tax']['unit']['formatted'])
-            cart_item_value = (cart_item['meta']['display_price']
-                               ['with_tax']['value']['formatted'])
-            cart_item_text = '\n'.join([
-                cart_item['name'],
-                f'{cart_item_price} per kg',
-                f'{cart_item["quantity"]} kg in cart for {cart_item_value}'
-            ])
-            cart_items_texts.append(cart_item_text)
-        total_text = f'Total: {cart_total}'
-        cart_items_texts.append(total_text)
-        cart_message = '\n\n'.join(cart_items_texts)
-    return cart_message
 
 
 if __name__ == '__main__':

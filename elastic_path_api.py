@@ -16,12 +16,16 @@ def get_elastic_path_access_token():
         client_id = os.getenv('ELASTIC_PATH_CLIENT_ID')
         client_secret = os.getenv('ELASTIC_PATH_CLIENT_SECRET')
         url = 'https://api.moltin.com/oauth/access_token'
-        data = f'client_id={client_id}' \
-               f'&client_secret={client_secret}&grant_type=client_credentials'
+        data = {
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'grant_type': 'client_credentials'
+        }
         response = requests.post(url, data=data)
         response.raise_for_status()
-        ACCESS_TOKEN = response.json()['access_token']
-        EXPIRATION_TIME = response.json()['expires']
+        decoded_response = response.json()
+        ACCESS_TOKEN = decoded_response['access_token']
+        EXPIRATION_TIME = decoded_response['expires']
     return ACCESS_TOKEN
 
 

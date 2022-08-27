@@ -159,7 +159,7 @@ def handle_description(update: Update, context: CallbackContext):
             int(quantity),
             chat_id
         )
-        update.callback_query.answer()
+        update.callback_query.answer(text='Product added to your cart!')
         return 'HANDLE_DESCRIPTION'
 
 

@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def get_main_menu_reply_markup(products, page):
+def get_main_menu_reply_markup(products, page=1):
     keyboard = []
     chunk_size = 2
     chunked_products = [products[i:i + chunk_size] for i in range(
@@ -115,7 +115,7 @@ def form_cart_message(cart):
     return cart_message
 
 
-def form_product_details_message(product_details):
+def form_product_details_message(product_details, product_in_cart):
     product_name = product_details['name']
     product_description = product_details['description']
     product_price = (product_details['meta']['display_price']
@@ -127,6 +127,16 @@ def form_product_details_message(product_details):
         product_name,
         product_price_text,
         product_amount_in_stock,
-        product_description
+        product_description,
     ])
+    if product_in_cart:
+        product_quantity = product_in_cart['quantity']
+        product_value = (product_in_cart['meta']['display_price']
+                                        ['with_tax']['value']['formatted'])
+        product_in_cart_text = \
+            f'{product_quantity} kg for {product_value} already in cart'
+        product_details_message = '\n\n'.join([
+            product_details_message,
+            product_in_cart_text
+        ])
     return product_details_message

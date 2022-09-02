@@ -80,6 +80,8 @@ def add_product_to_cart(product_id, quantity, cart_id):
     }
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
+    cart = response.json()
+    return cart
 
 
 def delete_product_from_cart(product_id, cart_id):

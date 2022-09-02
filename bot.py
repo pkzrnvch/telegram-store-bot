@@ -24,7 +24,7 @@ _database = None
 
 def start(update: Update, context: CallbackContext):
     products = fetch_products()
-    reply_markup = get_main_menu_reply_markup(products, page=1)
+    reply_markup = get_main_menu_reply_markup(products)
     message_text = 'Hello! Please, choose a product you are interested in'
     update.message.reply_text(text=message_text, reply_markup=reply_markup)
     return 'HANDLE_MENU'
@@ -56,7 +56,15 @@ def handle_menu(update: Update, context: CallbackContext):
     product_image_id = (product_details['relationships']
                         ['main_image']['data']['id'])
     product_image = get_product_image(product_image_id)
-    product_details_message = form_product_details_message(product_details)
+    cart = fetch_cart(chat_id)
+    cart_items = dict(
+        (cart_item['product_id'], cart_item) for cart_item in cart['data']
+    )
+    product_in_cart = cart_items.get(product_id)
+    product_details_message = form_product_details_message(
+        product_details,
+        product_in_cart
+    )
     reply_markup = get_product_details_reply_markup(product_id)
     with open(product_image, 'rb') as product_image:
         context.bot.send_photo(
@@ -142,12 +150,32 @@ def handle_description(update: Update, context: CallbackContext):
         return 'HANDLE_CART'
     else:
         product_id, quantity = callback_data.split('_')
-        add_product_to_cart(
+        cart = add_product_to_cart(
             product_id,
             int(quantity),
             chat_id
         )
         update.callback_query.answer(text='Product added to your cart!')
+        cart_items = dict(
+            (cart_item['product_id'], cart_item) for cart_item in cart['data']
+        )
+        product_in_cart = cart_items[product_id]
+        product_quantity = product_in_cart['quantity']
+        product_value = (product_in_cart['meta']['display_price']
+                                        ['with_tax']['value']['formatted'])
+        product_details_message = update.callback_query.message.caption
+        base_message = product_details_message.rsplit('\n\n', maxsplit=1)[0]
+        product_in_cart_text = \
+            f'{product_quantity} kg for {product_value} already in cart'
+        new_product_details_message = '\n\n'.join([
+            base_message,
+            product_in_cart_text
+        ])
+        reply_markup = get_product_details_reply_markup(product_id)
+        update.callback_query.edit_message_caption(
+            caption=new_product_details_message,
+            reply_markup=reply_markup
+        )
         return 'HANDLE_DESCRIPTION'
 
 

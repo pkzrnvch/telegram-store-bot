@@ -24,7 +24,7 @@ _database = None
 
 def start(update: Update, context: CallbackContext):
     products = fetch_products()
-    reply_markup = get_main_menu_reply_markup(products)
+    reply_markup = get_main_menu_reply_markup(products, page=1)
     message_text = 'Hello! Please, choose a product you are interested in'
     update.message.reply_text(text=message_text, reply_markup=reply_markup)
     return 'HANDLE_MENU'
@@ -35,20 +35,22 @@ def handle_menu(update: Update, context: CallbackContext):
         return 'HANDLE_MENU'
     callback_data = update.callback_query.data
     chat_id = update.callback_query.message.chat_id
+    if callback_data == 'inactive':
+        update.callback_query.answer()
+        return 'HANDLE_MENU'
     if callback_data == 'cart':
         cart = fetch_cart(chat_id)
         cart_message = form_cart_message(cart)
         reply_markup = get_cart_reply_markup(cart)
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=cart_message,
-            reply_markup=reply_markup
-        )
-        context.bot.delete_message(
-            chat_id=chat_id,
-            message_id=update.callback_query.message.message_id
-        )
+        update.callback_query.edit_message_text(cart_message)
+        update.callback_query.edit_message_reply_markup(reply_markup)
         return 'HANDLE_CART'
+    if callback_data.startswith('page'):
+        page = int(callback_data.split('_')[1])
+        products = fetch_products()
+        reply_markup = get_main_menu_reply_markup(products, page=page)
+        update.callback_query.edit_message_reply_markup(reply_markup)
+        return 'HANDLE_MENU'
     product_id = update.callback_query.data
     product_details = fetch_product(product_id)
     product_image_id = (product_details['relationships']
@@ -79,15 +81,8 @@ def handle_cart(update: Update, context: CallbackContext):
         message_text = 'Hello! Please, choose a product you are interested in'
         products = fetch_products()
         reply_markup = get_main_menu_reply_markup(products)
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=message_text,
-            reply_markup=reply_markup
-        )
-        context.bot.delete_message(
-            chat_id=chat_id,
-            message_id=update.callback_query.message.message_id
-        )
+        update.callback_query.edit_message_text(message_text)
+        update.callback_query.edit_message_reply_markup(reply_markup)
         return 'HANDLE_MENU'
     elif callback_data == 'order':
         context.bot.send_message(
@@ -107,15 +102,8 @@ def handle_cart(update: Update, context: CallbackContext):
         )
         cart_message = form_cart_message(cart)
         reply_markup = get_cart_reply_markup(cart)
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=cart_message,
-            reply_markup=reply_markup
-        )
-        context.bot.delete_message(
-            chat_id=chat_id,
-            message_id=update.callback_query.message.message_id
-        )
+        update.callback_query.edit_message_text(cart_message)
+        update.callback_query.edit_message_reply_markup(reply_markup)
         return 'HANDLE_CART'
 
 

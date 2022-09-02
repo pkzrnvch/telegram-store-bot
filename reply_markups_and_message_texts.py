@@ -1,9 +1,16 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def get_main_menu_reply_markup(products):
+def get_main_menu_reply_markup(products, page):
     keyboard = []
-    for product in products:
+    chunk_size = 2
+    chunked_products = [products[i:i + chunk_size] for i in range(
+        0,
+        len(products),
+        chunk_size
+    )]
+    chunk_number = page - 1
+    for product in chunked_products[chunk_number]:
         product_button = [InlineKeyboardButton(
             product['name'],
             callback_data=product['id']
@@ -11,6 +18,32 @@ def get_main_menu_reply_markup(products):
         keyboard.append(product_button)
     cart_button = [InlineKeyboardButton('Show cart', callback_data='cart')]
     keyboard.append(cart_button)
+    if len(chunked_products) > 1:
+        if page == 1:
+            previous_button = InlineKeyboardButton(
+                'Previous',
+                callback_data='inactive'
+            )
+        else:
+            previous_button = InlineKeyboardButton(
+                'Previous',
+                callback_data=f'page_{page - 1}'
+            )
+        if page == len(chunked_products):
+            next_button = InlineKeyboardButton(
+                'Next',
+                callback_data='inactive'
+            )
+        else:
+            next_button = InlineKeyboardButton(
+                'Next',
+                callback_data=f'page_{page + 1}'
+            )
+        navigation_buttons = [
+            previous_button,
+            next_button
+        ]
+        keyboard.append(navigation_buttons)
     reply_markup = InlineKeyboardMarkup(keyboard)
     return reply_markup
 

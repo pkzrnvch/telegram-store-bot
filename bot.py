@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from telegram.ext import Filters, Updater, CallbackContext
+from validate_email import validate_email
 
 from elastic_path_api import (fetch_cart,
                               fetch_product,
@@ -181,15 +182,22 @@ def handle_description(update: Update, context: CallbackContext):
 
 def handle_contact_info(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
-    if 'name' not in context.user_data:
+    name = context.user_data.get('name')
+    if not name:
         context.user_data['name'] = update.message.text
         context.bot.send_message(
             chat_id=chat_id,
             text='Please, enter your email'
         )
         return 'WAITING_CONTACT_INFO'
-    name = context.user_data['name']
     email = update.message.text
+    email_is_valid = validate_email(email)
+    if not email_is_valid:
+        context.bot.send_message(
+            chat_id=chat_id,
+            text='Please, enter your email again, there seems to be a mistake'
+        )
+        return 'WAITING_CONTACT_INFO'
     customer = create_customer(name, email)
     products = fetch_products()
     reply_markup = get_main_menu_reply_markup(products)

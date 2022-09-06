@@ -2,6 +2,8 @@
 
 This telegram bot can be used to sell products online. It works with [Elastic Path](https://www.elasticpath.com) e-commerce platform.
 
+![](gifs/example.gif)
+
 Supported functions:
 - Show the list of all available products.
 - Show description, picture, price and quantity in stock for a particular product.

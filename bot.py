@@ -94,10 +94,17 @@ def handle_cart(update: Update, context: CallbackContext):
         update.callback_query.edit_message_reply_markup(reply_markup)
         return 'HANDLE_MENU'
     elif callback_data == 'order':
-        context.bot.send_message(
-            chat_id=chat_id,
-            text='Please, enter your name',
-        )
+        name = context.user_data.get('name')
+        if name:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text='Please, enter your email',
+            )
+        else:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text='Please, enter your name',
+            )
         context.bot.delete_message(
             chat_id=chat_id,
             message_id=update.callback_query.message.message_id
